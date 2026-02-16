@@ -1,25 +1,31 @@
 package staniszewska.licencjat_backend.entities;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "categories")
-public class CategoryEntity {
+@Table(name = "report_images")
+public class ImageEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    private String name;
+    private String url;
 
-    private String iconKey;
+    @Column(name = "uploadet_at")
+    private LocalDateTime uploadedAt;
 
-    private String colorHex;
+    @ManyToOne
+    @JoinColumn(name = "report_id")
+    private ReportEntity report;
 
 }
+
