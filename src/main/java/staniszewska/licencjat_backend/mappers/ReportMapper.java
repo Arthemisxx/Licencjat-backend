@@ -31,9 +31,5 @@ public class ReportMapper {
         LocalDateTime updatedAt = report.getUpdatedAt();
 
         return new ReportDTO(id, authorId, guestEmail, categoryId, description, latitude, longitude, address, status, createdAt, updatedAt);
-
-
-
-
     }
 }

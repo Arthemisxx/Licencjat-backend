@@ -32,9 +32,14 @@ public class ReportController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Void> getReport(@PathVariable Long id){
-
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<ReportDTO> getReport(@PathVariable Long id){
+        ReportDTO result = reportService.getReportById(id);
+        if(result == null){
+            logger.info("Task not found!");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }else{
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }
     }
 
 //    @PostMapping

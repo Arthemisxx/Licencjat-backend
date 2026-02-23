@@ -10,4 +10,6 @@ import java.util.List;
 public interface ReportRepository extends CrudRepository<ReportEntity, Long> {
     List<ReportEntity> findAll();
 
+    ReportEntity getReportEntityById(Long id);
+
 }
