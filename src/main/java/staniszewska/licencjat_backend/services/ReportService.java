@@ -17,22 +17,15 @@ public class ReportService {
     private final ReportMapper reportMapper;
 
     public List<ReportDTO> getAllReports(){
-        List<ReportEntity> reports = reportRepository.findAll();
+        List<ReportDTO> reports = reportRepository.findAllReportDTO();
         if(reports.isEmpty()){
             return new ArrayList<>();
         }
 
-        return reports.stream()
-                .map(reportMapper::toDTO)
-                .toList();
+        return reports;
     }
 
     public ReportDTO getReportById(Long id) {
-        ReportEntity report = reportRepository.getReportEntityById(id);
-        if(report == null) {
-            return null;
-        }else{
-            return reportMapper.toDTO(report);
-        }
+        return reportRepository.getReportDTOById(id);
        }
 }

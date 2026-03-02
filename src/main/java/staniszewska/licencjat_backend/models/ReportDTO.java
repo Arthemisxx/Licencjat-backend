@@ -13,18 +13,35 @@ import staniszewska.licencjat_backend.entities.UserEntity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+//@AllArgsConstructor
+//class DTO{
+//    private Long id;
+//    private Long categoryId;
+//}
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+//@IdClass(DTO.class)
 public class ReportDTO {
+//    @Id
     private Long id;
 
     private Long authorId;
 
     private String guestEmail;
 
+    //Category
+//    @Id
     private Long categoryId;
+
+    private String categoryName;
+
+    private String categoryIconKey;
+
+    private String categoryColorHex;
+    //
 
     private String description;
 
@@ -41,6 +58,4 @@ public class ReportDTO {
 
     @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
     private LocalDateTime updatedAt;
-
-
 }
