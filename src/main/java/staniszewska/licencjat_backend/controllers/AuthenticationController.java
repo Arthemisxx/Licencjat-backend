@@ -1,5 +1,6 @@
 package staniszewska.licencjat_backend.controllers;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,6 +13,7 @@ import staniszewska.licencjat_backend.models.RegisterUserDTO;
 import staniszewska.licencjat_backend.services.AuthenticationService;
 import staniszewska.licencjat_backend.services.JwtService;
 
+@Slf4j
 @RequestMapping("/auth")
 @RestController
 public class AuthenticationController {

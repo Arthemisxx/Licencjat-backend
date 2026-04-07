@@ -1,10 +1,7 @@
 package staniszewska.licencjat_backend.entities;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,10 +11,11 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @Table(name = "reports")
 public class ReportEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
@@ -26,7 +24,7 @@ public class ReportEntity {
     private UserEntity author;
 
     @Nullable
-    @Column(name = "quest_email")
+    @Column(name = "guest_email")
     private String guestEmail;
 
     @ManyToOne
@@ -35,12 +33,13 @@ public class ReportEntity {
 
     private String description;
 
-    private BigDecimal latitude;
+    private Double latitude;
 
-    private BigDecimal longitude;
+    private Double longitude;
 
     @Nullable
     private String address;
+
 
     private String status;
 
@@ -49,14 +48,6 @@ public class ReportEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-
-
-
-
-
-
-
 
 
 }

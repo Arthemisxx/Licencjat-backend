@@ -40,6 +40,9 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/reports").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/reports").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/reports/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/categories").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -55,7 +58,7 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
 //TODO
         configuration.setAllowedOrigins(List.of("http://localhost:8081", "http://localhost:5173"));
-        configuration.setAllowedMethods(List.of("GET", "POST"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

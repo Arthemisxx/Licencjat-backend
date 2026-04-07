@@ -3,14 +3,22 @@ package staniszewska.licencjat_backend.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import staniszewska.licencjat_backend.entities.UserEntity;
+import staniszewska.licencjat_backend.models.CreateReportDTO;
 import staniszewska.licencjat_backend.models.ReportDTO;
+import staniszewska.licencjat_backend.models.ReportDetailsDTO;
 import staniszewska.licencjat_backend.services.ReportService;
 
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import staniszewska.licencjat_backend.services.WatchService;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,22 +26,43 @@ import org.apache.logging.log4j.Logger;
 public class ReportController {
     private final ReportService reportService;
     private final Logger logger = LogManager.getLogger(ReportController.class);
+    private final WatchService watchService;
 
     @GetMapping
-    public ResponseEntity<List<ReportDTO>> getAllReports(){
-        List<ReportDTO> result = reportService.getAllReports();
+    public ResponseEntity<List<ReportDTO>> getAllReportsWithFilter(@RequestParam(required = false) List<Long> categoryIds ){
+        List<ReportDTO> result;
+        if(categoryIds == null || categoryIds.isEmpty()){
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
+        }
+
+        result = reportService.getFilteredReports(categoryIds);
         if(result.isEmpty()){
             logger.info("No tasks found!");
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }else{
-            result.forEach(e -> logger.info(e.getDescription()));
+//            result.forEach(e -> logger.info(e.getId()));
             return new ResponseEntity<>(result, HttpStatus.OK);
         }
     }
 
+//
+//    @GetMapping
+//    public ResponseEntity<List<ReportDTO>> getAllReports(){
+//        List<ReportDTO> result = reportService.getAllReports();
+//        if(result.isEmpty()){
+//            logger.info("No tasks found!");
+//            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+//        }else{
+//            result.forEach(e -> logger.info(e.getId()));
+//            return new ResponseEntity<>(result, HttpStatus.OK);
+//        }
+//    }
+
+
+
     @GetMapping("/{id}")
-    public ResponseEntity<ReportDTO> getReport(@PathVariable Long id){
-        ReportDTO result = reportService.getReportById(id);
+    public ResponseEntity<ReportDetailsDTO> getReport(@PathVariable Long id){
+        ReportDetailsDTO result = reportService.getReportById(id);
         if(result == null){
             logger.info("Task not found!");
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -42,11 +71,34 @@ public class ReportController {
         }
     }
 
-//    @PostMapping
-//    public ResponseEntity<Void> createReport(@RequestBody ReportDTO report){
-//
-//        return new ResponseEntity<>(HttpStatus.OK);
-//    }
+    @PostMapping("/{id}/watch")
+    public ResponseEntity<ReportDetailsDTO> watchReport(@PathVariable Long id){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+
+        logger.info("Weszło");
+
+        if(currentUser == null){
+            logger.info("Brak usera");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        watchService.toggleWatch(currentUser.getId(), id);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> createReport(@RequestPart("reportData") CreateReportDTO report, @RequestPart(value = "images", required = false)List<MultipartFile> images){
+        Long createdReportId = reportService.createReport(report);
+
+        if(images != null && !images.isEmpty()) {
+            reportService.saveImagesForReport(createdReportId, images);
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> removeReport(@PathVariable Long id){

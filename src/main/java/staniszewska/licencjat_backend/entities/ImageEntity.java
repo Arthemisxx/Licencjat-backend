@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Table(name = "report_images")
 public class ImageEntity {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String url;
