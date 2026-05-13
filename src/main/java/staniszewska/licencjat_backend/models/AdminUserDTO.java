@@ -9,11 +9,10 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CategoryDTO {
+public class AdminUserDTO {
     private Long id;
-
-    private String name;
-
-    private String iconKey;
-
+    private String firstName;
+    private String lastName;
+    private String email;
+    private Long reportsCount;
 }

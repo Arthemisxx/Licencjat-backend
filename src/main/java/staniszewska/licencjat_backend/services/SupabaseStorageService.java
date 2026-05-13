@@ -44,4 +44,35 @@ public class SupabaseStorageService {
             throw new RuntimeException("Błąd podczas wgrywania pliku do Supabase");
         }
     }
+
+    public void deleteFileFromUrl(String fileUrl) {
+        try {
+            String prefix = "/storage/v1/object/public/" + bucketName + "/";
+            if (!fileUrl.contains(prefix)) {
+                return;
+            }
+            String fileName = fileUrl.substring(fileUrl.indexOf(prefix) + prefix.length());
+
+            String endpoint = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + fileName;
+
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(supabaseKey);
+
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    endpoint,
+                    HttpMethod.DELETE,
+                    requestEntity,
+                    String.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                System.err.println("Nie udało się usunąć pliku fizycznego z Supabase: " + fileName);
+            }
+        } catch (Exception e) {
+            System.err.println("Błąd podczas komunikacji z Supabase przy usuwaniu: " + e.getMessage());
+        }
+    }
 }

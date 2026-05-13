@@ -2,6 +2,8 @@ package staniszewska.licencjat_backend.controllers;
 
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -10,12 +12,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import staniszewska.licencjat_backend.entities.UserEntity;
-import staniszewska.licencjat_backend.models.CreateReportDTO;
-import staniszewska.licencjat_backend.models.ReportDTO;
-import staniszewska.licencjat_backend.models.ReportDetailsDTO;
+import staniszewska.licencjat_backend.models.*;
+import staniszewska.licencjat_backend.repositories.ReportRepository;
 import staniszewska.licencjat_backend.services.ReportService;
 
 import java.util.List;
+import java.util.Objects;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import staniszewska.licencjat_backend.services.WatchService;
@@ -27,6 +30,7 @@ public class ReportController {
     private final ReportService reportService;
     private final Logger logger = LogManager.getLogger(ReportController.class);
     private final WatchService watchService;
+    private final ReportRepository reportRepository;
 
     @GetMapping
     public ResponseEntity<List<ReportDTO>> getAllReportsWithFilter(@RequestParam(required = false) List<Long> categoryIds ){
@@ -41,6 +45,38 @@ public class ReportController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }else{
 //            result.forEach(e -> logger.info(e.getId()));
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }
+    }
+
+
+
+    @GetMapping("admin")
+    public ResponseEntity<Page<AdminReportDTO>> getAdminReports(@RequestParam(required = false) String search, Pageable pageable){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+        if(currentUser != null && !Objects.equals(currentUser.getRole(), "ADMIN")){
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        Page<AdminReportDTO> page = reportService.searchAdminReports(search, pageable);
+
+        return new ResponseEntity<>(page, HttpStatus.OK);
+    }
+
+    @GetMapping("admin/{id}")
+    public ResponseEntity<AdminReportDetailsDTO> getAdminReportDetails(@PathVariable Long id){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+        if(currentUser != null && !Objects.equals(currentUser.getRole(), "ADMIN")){
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        AdminReportDetailsDTO result = reportService.getAdminReportById(id);
+        if(result == null){
+            logger.info("Task not found!");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }else{
             return new ResponseEntity<>(result, HttpStatus.OK);
         }
     }
@@ -100,17 +136,49 @@ public class ReportController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removeReport(@PathVariable Long id){
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateStatus(@PathVariable Long id, @RequestBody AdminUpdateDTO updated){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        if (currentUser == null || !Objects.equals(currentUser.getRole(), "ADMIN")) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        String cleanStatus = updated.getStatus();
+        String note = updated.getNote();
+
+
+        boolean updatedData = reportService.updateReportStatusAndNote(id, cleanStatus, note);
+
+        if (updatedData) {
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
-//    @PutMapping
-//    public ResponseEntity<Void> updateReport(@RequestBody ReportDTO report){
-//
-//        return new ResponseEntity<>(HttpStatus.OK);
-//    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> removeReport(@PathVariable Long id){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+
+        if (currentUser == null || !Objects.equals(currentUser.getRole(), "ADMIN")) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        boolean isDeleted = reportService.deleteReport(id);
+
+        if (isDeleted) {
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+
 
 
 

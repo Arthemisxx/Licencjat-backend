@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 @Builder
 @Table(name = "reports")
 public class ReportEntity {
+
+    @Nullable
+    @Column(name = "admin_note")
+    private String adminNote;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -48,6 +53,9 @@ public class ReportEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+
+
 
 
 }

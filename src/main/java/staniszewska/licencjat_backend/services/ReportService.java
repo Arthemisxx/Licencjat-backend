@@ -1,6 +1,10 @@
 package staniszewska.licencjat_backend.services;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,14 +14,13 @@ import staniszewska.licencjat_backend.entities.CategoryEntity;
 import staniszewska.licencjat_backend.entities.ImageEntity;
 import staniszewska.licencjat_backend.entities.ReportEntity;
 import staniszewska.licencjat_backend.entities.UserEntity;
-import staniszewska.licencjat_backend.models.CreateReportDTO;
-import staniszewska.licencjat_backend.models.ReportDTO;
-import staniszewska.licencjat_backend.models.ReportDetailsDTO;
+import staniszewska.licencjat_backend.models.*;
 import staniszewska.licencjat_backend.repositories.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,12 +42,33 @@ public class ReportService {
         return reports;
     }
 
+    public List<AdminUserReportDetailsDTO> getUserReportsMini(Long userId) {
+        return reportRepository.getUserReportsMini(userId);
+    }
+
     public List<ReportDTO> getFilteredReports(List<Long> categoryIds) {
         List<ReportDTO> reports = reportRepository.findAllByCategoryIdIn(categoryIds);
         if (reports.isEmpty()) {
             return new ArrayList<>();
         }
         return reports;
+    }
+
+    @Transactional
+    public boolean deleteReport(Long id) {
+        if (!reportRepository.existsById(id)) {
+            return false;
+        }
+
+        List<ImageEntity> images = imageRepository.findAllByReportId(id);
+        for (ImageEntity image : images) {
+            supabaseStorageService.deleteFileFromUrl(image.getUrl());
+        }
+        imageRepository.deleteAllByReportId(id);
+        watchRepository.deleteAllByReportId(id);
+        reportRepository.deleteById(id);
+
+        return true;
     }
 
     public ReportDetailsDTO getReportById(Long id) {
@@ -70,6 +94,22 @@ public class ReportService {
 
     }
 
+
+    public AdminReportDetailsDTO getAdminReportById(Long id) {
+        AdminReportDetailsDTO reportDetails = reportRepository.getAdminReportDetailsDTO(id);
+        if (reportDetails == null) {
+            return null;
+        }
+
+        List<String> imageUrls = imageRepository.findImageUrlsByReportId(id);
+        reportDetails.setImageUrls(imageUrls);
+
+        Integer count = watchRepository.countWatchersByReportId(id);
+        reportDetails.setWatchedBy(count);
+
+        return reportDetails;
+    }
+
     public List<ReportDetailsDTO> getReportsByUserId(Long id) {
         List<ReportDetailsDTO> reports = reportRepository.getReportDetailsDTOByUserId(id);
 
@@ -84,8 +124,17 @@ public class ReportService {
         return reports;
     }
 
+    public Page<AdminReportDTO> searchAdminReports(String search, Pageable pageable) {
+
+
+
+        String safeSearch = (search != null && search.trim().isEmpty()) ? null : search;
+        return reportRepository.findReportsForAdminPanel(safeSearch, pageable);
+
+    }
+
     public List<ReportDetailsDTO> getReportsWatchedByUserId(Long id) {
-        List<ReportDetailsDTO> reports = reportRepository.getReportDetailsDTOWatchedByUser(id);
+        List<ReportDetailsDTO> reports = reportRepository.getReportDetailsDTO(id);
 
         reports.forEach(r -> {
             List<String> imageUrls = imageRepository.findImageUrlsByReportId(r.getId());
@@ -120,6 +169,28 @@ public class ReportService {
                 .build();
 
         return reportRepository.save(newReport).getId();
+    }
+
+    public boolean updateReportStatusAndNote(Long id, String newStatus, String newNote) {
+        Optional<ReportEntity> reportOptional = reportRepository.findById(id);
+
+        if (reportOptional.isPresent()) {
+            ReportEntity report = reportOptional.get();
+
+            if(newStatus != null){
+                report.setStatus(newStatus);
+                report.setUpdatedAt(LocalDateTime.now());
+            }
+
+            if(newNote != null){
+                report.setAdminNote(newNote);
+            }
+
+            reportRepository.save(report);
+            return true;
+        }
+
+        return false;
     }
 
     public void saveImagesForReport(Long reportId, List<MultipartFile> images) {

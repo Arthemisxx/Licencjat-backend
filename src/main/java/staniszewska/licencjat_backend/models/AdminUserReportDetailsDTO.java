@@ -5,15 +5,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CategoryDTO {
+public class AdminUserReportDetailsDTO {
     private Long id;
-
-    private String name;
-
-    private String iconKey;
-
+    private String description;
+    private String categoryName;
+    private String status;
+    private LocalDateTime createdAt;
 }

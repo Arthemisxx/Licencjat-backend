@@ -13,5 +13,8 @@ import java.util.List;
 public interface ImageRepository extends JpaRepository<ImageEntity, Long> {
     @Query("SELECT i.url FROM ImageEntity i WHERE i.report.id = :reportId")
     List<String> findImageUrlsByReportId(@Param("reportId") Long reportId);
+    void deleteAllByReportId(Long reportId);
+    List<ImageEntity> findAllByReportId(Long id);
+
 
 }
