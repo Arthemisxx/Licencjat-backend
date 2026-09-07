@@ -23,28 +23,17 @@ public class WatchService {
     private final WatchRepository watchRepository;
     private final UserRepository userRepository;
     private final ReportRepository reportRepository;
-    private final Logger logger = LogManager.getLogger(WatchService.class);
 
     @Transactional
     public void toggleWatch(Long userId, Long reportId){
-        logger.info("Service");
         int deletedRows = watchRepository.deleteByIds(userId, reportId);
-
-
-        logger.info(deletedRows);
 
         if (deletedRows == 0) {
             UserEntity user = userRepository.getReferenceById(userId);
             ReportEntity report = reportRepository.getReferenceById(reportId);
-
             WatchId watchId = new WatchId(user, report);
             WatchEntity newWatch = new WatchEntity(watchId, LocalDateTime.now());
-
-            logger.info(newWatch);
-
             watchRepository.save(newWatch);
         }
-
     }
-
 }

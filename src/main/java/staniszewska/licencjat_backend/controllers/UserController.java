@@ -27,7 +27,6 @@ public class UserController {
     private final ReportService reportService;
     private final UserService userService;
 
-
     @GetMapping("/me")
     public ResponseEntity<UserDataDTO> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -41,7 +40,6 @@ public class UserController {
         user.setLastName(currentUser.getLastName());
 
         return new ResponseEntity<>(user, HttpStatus.OK);
-
     }
 
     @GetMapping("/me/reports")
@@ -51,13 +49,9 @@ public class UserController {
 
         if (currentUser != null) {
             List<ReportDetailsDTO> userReports = reportService.getReportsByUserId(currentUser.getId());
-
-
-            if(userReports != null && !userReports.isEmpty()){
-                return new ResponseEntity<>(userReports, HttpStatus.OK);
-            }
+            return new ResponseEntity<>(userReports, HttpStatus.OK);
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
     }
 
     @GetMapping("/me/watched")
@@ -67,44 +61,31 @@ public class UserController {
 
         if (currentUser != null) {
             List<ReportDetailsDTO> userReports = reportService.getReportsWatchedByUserId(currentUser.getId());
-            if(userReports != null && !userReports.isEmpty()){
-                return new ResponseEntity<>(userReports, HttpStatus.OK);
-            }
+            return new ResponseEntity<>(userReports, HttpStatus.OK);
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
     }
 
     @PutMapping("/me")
     public ResponseEntity<UserUpdatedDetailsDTO> updateUserDetails(@RequestBody UserUpdatedDetailsDTO user) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
-        UserUpdatedDetailsDTO updatedUser = new UserUpdatedDetailsDTO();
 
-        if (currentUser != null) {
-            if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
-                currentUser.setFirstName(user.getFirstName());
-                updatedUser.setFirstName(user.getFirstName());
-            }
-
-            if (user.getLastName() != null && !user.getLastName().isEmpty()) {
-                currentUser.setLastName(user.getLastName());
-                updatedUser.setLastName(user.getLastName());
-            }
-
-            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
-                currentUser.setEmail(user.getEmail());
-                updatedUser.setEmail(user.getEmail());
-            }
-
-            logger.info(updatedUser);
-
-            userRepository.save(currentUser);
-            return new ResponseEntity<>(updatedUser, HttpStatus.OK);
-
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        if (currentUser == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
+        try {
+            UserUpdatedDetailsDTO updatedUser = userService.updateUserDetails(currentUser, user);
+            return new ResponseEntity<>(updatedUser, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("already exists")) {
+                return new ResponseEntity<>(HttpStatus.CONFLICT);
+            }
+            throw e;
+        }
     }
 
     @GetMapping("/admin")
@@ -122,7 +103,6 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
-
         Page<AdminUserDTO> users = userService.getAdminUsers(page, size, search, sort, dir);
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
@@ -136,14 +116,22 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
+        if (!userRepository.existsById(id)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
         List<AdminUserReportDetailsDTO> reports = reportService.getUserReportsMini(id);
         return new ResponseEntity<>(reports, HttpStatus.OK);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
 
-
-
-
-
-
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGeneralException(Exception e) {
+        logger.error("Unexpected error: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
+    }
 }

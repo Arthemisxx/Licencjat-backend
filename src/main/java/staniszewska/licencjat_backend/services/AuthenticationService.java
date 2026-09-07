@@ -1,6 +1,7 @@
 package staniszewska.licencjat_backend.services;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,17 @@ public class AuthenticationService {
     }
 
     public UserEntity signup(RegisterUserDTO input) {
+        if (input.getEmail() == null || input.getEmail().isEmpty() ||
+            input.getPassword() == null || input.getPassword().isEmpty() ||
+            input.getFirstName() == null || input.getFirstName().isEmpty() ||
+            input.getLastName() == null || input.getLastName().isEmpty()) {
+            throw new IllegalArgumentException("All fields are required");
+        }
+
+        if (userRepository.findByEmail(input.getEmail()).isPresent()) {
+            throw new RuntimeException("User with this email already exists");
+        }
+
         UserEntity user = new UserEntity();
         user.setFirstName(input.getFirstName());
         user.setLastName(input.getLastName());
@@ -43,14 +55,18 @@ public class AuthenticationService {
     }
 
     public UserEntity authenticate(LoginUserDTO input) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        input.getEmail(),
-                        input.getPassword()
-                )
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            input.getEmail(),
+                            input.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
 
         return userRepository.findByEmail(input.getEmail())
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

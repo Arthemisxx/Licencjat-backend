@@ -16,17 +16,26 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final ReportRepository reportRepository;
 
-    public List<CategoryDTO> getAllCategories(){
-        List<CategoryDTO> categories =  categoryRepository.getAllCategories();
-        if(categories.isEmpty()){
+    public List<CategoryDTO> getAllCategories() {
+        List<CategoryDTO> categories = categoryRepository.getAllCategories();
+        if (categories.isEmpty()) {
             return new ArrayList<>();
         }
         return categories;
     }
 
-    public Long addCategory(String categoryName){
+    public Long addCategory(String categoryName) {
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category name cannot be empty");
+        }
+
+        if (categoryRepository.findAll().stream().anyMatch(c -> c.getName()
+                .equalsIgnoreCase(categoryName.trim()))) {
+            throw new RuntimeException("Category with this name already exists");
+        }
+
         CategoryEntity newCategory = CategoryEntity.builder()
-                .name(categoryName)
+                .name(categoryName.trim())
                 .iconKey("other.svg")
                 .colorHex(null)
                 .build();
@@ -34,7 +43,7 @@ public class CategoryService {
         return categoryRepository.save(newCategory).getId();
     }
 
-    public boolean deleteCategory(Long id){
+    public boolean deleteCategory(Long id) {
         if (!categoryRepository.existsById(id)) {
             return false;
         }

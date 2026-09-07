@@ -12,6 +12,7 @@ import staniszewska.licencjat_backend.entities.UserEntity;
 import staniszewska.licencjat_backend.models.CategoryDTO;
 import staniszewska.licencjat_backend.services.CategoryService;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,11 +26,7 @@ public class CategoryController {
     @GetMapping
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
         List<CategoryDTO> result = categoryService.getAllCategories();
-        if (result.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        } else {
-            return new ResponseEntity<>(result, HttpStatus.OK);
-        }
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
@@ -45,7 +42,7 @@ public class CategoryController {
             boolean deleted = categoryService.deleteCategory(id);
 
             if (deleted) {
-                return new ResponseEntity<>(HttpStatus.OK);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             } else {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
@@ -64,13 +61,26 @@ public class CategoryController {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
-        String cleanName = categoryName.replace("\"", "");
-        Long newId = categoryService.addCategory(cleanName);
-        if(newId != null){
-            return new ResponseEntity<>(HttpStatus.OK);
+        try {
+            String cleanName = categoryName.replace("\"", "");
+            Long newId = categoryService.addCategory(cleanName);
+            return ResponseEntity.created(URI.create("/categories/" + newId)).build();
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("already exists")) {
+                return new ResponseEntity<>(HttpStatus.CONFLICT);
+            }
+            throw e;
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGeneralException(Exception e) {
+        logger.error("Unexpected error: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
+    }
 }

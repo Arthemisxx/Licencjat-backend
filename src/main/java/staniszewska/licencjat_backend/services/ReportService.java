@@ -59,7 +59,6 @@ public class ReportService {
         if (!reportRepository.existsById(id)) {
             return false;
         }
-
         List<ImageEntity> images = imageRepository.findAllByReportId(id);
         for (ImageEntity image : images) {
             supabaseStorageService.deleteFileFromUrl(image.getUrl());
@@ -67,7 +66,6 @@ public class ReportService {
         imageRepository.deleteAllByReportId(id);
         watchRepository.deleteAllByReportId(id);
         reportRepository.deleteById(id);
-
         return true;
     }
 
@@ -125,9 +123,6 @@ public class ReportService {
     }
 
     public Page<AdminReportDTO> searchAdminReports(String search, Pageable pageable) {
-
-
-
         String safeSearch = (search != null && search.trim().isEmpty()) ? null : search;
         return reportRepository.findReportsForAdminPanel(safeSearch, pageable);
 
@@ -153,7 +148,7 @@ public class ReportService {
             user = userRepository.findById(report.getAuthorId()).orElse(null);
         }
 
-        CategoryEntity category = categoryRepository.findById(report.getCategoryId()).orElseThrow(() -> new IllegalArgumentException("Błędna kategoria!"));
+        CategoryEntity category = (CategoryEntity) categoryRepository.findById(report.getCategoryId()).orElseThrow(() -> new IllegalArgumentException("Błędna kategoria!"));
 
         ReportEntity newReport = ReportEntity.builder()
                 .author(user)

@@ -41,6 +41,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/reports").permitAll()
                         .requestMatchers(HttpMethod.POST, "/reports").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/reports/admin/*").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/reports/admin").authenticated()
                         .requestMatchers(HttpMethod.GET, "/reports/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categories").permitAll()
                         .anyRequest().authenticated()
@@ -49,14 +51,12 @@ public class SecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-//TODO
         configuration.setAllowedOrigins(List.of("http://localhost:8081", "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));

@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 public class ReportDTO {
     private Long id;
 
-    //Category
     private Long categoryId;
 
     private String categoryName;
@@ -29,7 +28,6 @@ public class ReportDTO {
     private String categoryIconKey;
 
     private String categoryColorHex;
-    //
 
     private Double latitude;
 

@@ -1,6 +1,5 @@
 package staniszewska.licencjat_backend.controllers;
 
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +15,7 @@ import staniszewska.licencjat_backend.models.*;
 import staniszewska.licencjat_backend.repositories.ReportRepository;
 import staniszewska.licencjat_backend.services.ReportService;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,7 +30,6 @@ public class ReportController {
     private final ReportService reportService;
     private final Logger logger = LogManager.getLogger(ReportController.class);
     private final WatchService watchService;
-    private final ReportRepository reportRepository;
 
     @GetMapping
     public ResponseEntity<List<ReportDTO>> getAllReportsWithFilter(@RequestParam(required = false) List<Long> categoryIds ){
@@ -40,18 +39,10 @@ public class ReportController {
         }
 
         result = reportService.getFilteredReports(categoryIds);
-        if(result.isEmpty()){
-            logger.info("No tasks found!");
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }else{
-//            result.forEach(e -> logger.info(e.getId()));
-            return new ResponseEntity<>(result, HttpStatus.OK);
-        }
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-
-
-    @GetMapping("admin")
+    @GetMapping("/admin")
     public ResponseEntity<Page<AdminReportDTO>> getAdminReports(@RequestParam(required = false) String search, Pageable pageable){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
@@ -64,7 +55,7 @@ public class ReportController {
         return new ResponseEntity<>(page, HttpStatus.OK);
     }
 
-    @GetMapping("admin/{id}")
+    @GetMapping("/admin/{id}")
     public ResponseEntity<AdminReportDetailsDTO> getAdminReportDetails(@PathVariable Long id){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
@@ -81,26 +72,12 @@ public class ReportController {
         }
     }
 
-//
-//    @GetMapping
-//    public ResponseEntity<List<ReportDTO>> getAllReports(){
-//        List<ReportDTO> result = reportService.getAllReports();
-//        if(result.isEmpty()){
-//            logger.info("No tasks found!");
-//            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-//        }else{
-//            result.forEach(e -> logger.info(e.getId()));
-//            return new ResponseEntity<>(result, HttpStatus.OK);
-//        }
-//    }
-
 
 
     @GetMapping("/{id}")
     public ResponseEntity<ReportDetailsDTO> getReport(@PathVariable Long id){
         ReportDetailsDTO result = reportService.getReportById(id);
         if(result == null){
-            logger.info("Task not found!");
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }else{
             return new ResponseEntity<>(result, HttpStatus.OK);
@@ -112,10 +89,7 @@ public class ReportController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
 
-        logger.info("Weszło");
-
         if(currentUser == null){
-            logger.info("Brak usera");
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
@@ -127,13 +101,18 @@ public class ReportController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> createReport(@RequestPart("reportData") CreateReportDTO report, @RequestPart(value = "images", required = false)List<MultipartFile> images){
-        Long createdReportId = reportService.createReport(report);
+        try {
+            Long createdReportId = reportService.createReport(report);
 
-        if(images != null && !images.isEmpty()) {
-            reportService.saveImagesForReport(createdReportId, images);
+            if(images != null && !images.isEmpty()) {
+                reportService.saveImagesForReport(createdReportId, images);
+            }
+
+            return ResponseEntity.created(URI.create("/reports/" + createdReportId)).build();
+        } catch (Exception e) {
+            logger.error("Error creating report: {}", e.getMessage());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
@@ -147,7 +126,6 @@ public class ReportController {
 
         String cleanStatus = updated.getStatus();
         String note = updated.getNote();
-
 
         boolean updatedData = reportService.updateReportStatusAndNote(id, cleanStatus, note);
 
@@ -172,15 +150,22 @@ public class ReportController {
         boolean isDeleted = reportService.deleteReport(id);
 
         if (isDeleted) {
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
 
-
-
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGeneralException(Exception e) {
+        logger.error("Unexpected error: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
+    }
 
 
 }
